@@ -57,6 +57,10 @@ jobs:
               echo "* [Introduction](README.md)" >> SUMMARY.md
           fi
 
-      # 8️⃣ Commit & push only existing files using external script
+      # 8️⃣ Ensure commit script is executable
+      - name: Make commit script executable
+        run: chmod +x .github/scripts/commit_docs.sh
+
+      # 9️⃣ Commit & push only existing files using external script
       - name: Commit and push
         run: .github/scripts/commit_docs.sh
