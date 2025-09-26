@@ -1,4 +1,3 @@
-# .github/workflows/openapi-generate.yml
 name: Generate GitBook docs from OpenAPI
 
 on:
@@ -58,28 +57,6 @@ jobs:
               echo "* [Introduction](README.md)" >> SUMMARY.md
           fi
 
-      # 8️⃣ Commit & push only existing files (fixed syntax)
+      # 8️⃣ Commit & push only existing files using external script
       - name: Commit and push
-        shell: bash
-        run: |
-          files_to_add=""
-
-          if [ -f README.md ]; then
-              files_to_add="$files_to_add README.md"
-          fi
-
-          if [ -f SUMMARY.md ]; then
-              files_to_add="$files_to_add SUMMARY.md"
-          fi
-
-          if [ -n "$files_to_add" ]; then
-              git add $files_to_add
-
-              if git diff --cached --quiet; then
-                  echo "No changes to commit"
-              else
-                  git commit -m "ci: regenerate docs from OpenAPI"
-                  git push origin docs
-              fi
-          else
-              echo "No files to commit"
+        run: .github/scripts/commit_docs.sh
