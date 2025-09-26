@@ -1,84 +1,13 @@
-# .github/workflows/openapi-generate.yml
-name: Generate GitBook docs from OpenAPI
-
+# .github/workflows/test.yml
+name: Test Workflow Trigger
 on:
   push:
     branches:
       - main
-    paths:
-      - 'openapi/**'  # Trigger when OpenAPI spec changes
 
 jobs:
-  generate-and-push:
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      # 1️⃣ Checkout repository
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      # 2️⃣ Setup Node.js
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      # 3️⃣ Install openapi-autodoc globally
-      - name: Install openapi-autodoc
-        run: npm install -g @gitbook/openapi-autodoc
-
-      # 4️⃣ Generate GitBook Markdown from OpenAPI
-      - name: Generate GitBook docs
-        run: |
-          npx @gitbook/openapi-autodoc -f ./openapi/openapi.yaml -o generated-gitbook
-
-      # 5️⃣ Debug: list generated files
-      - name: List generated files
-        run: ls -R generated-gitbook/
-
-      # 6️⃣ Prepare docs branch
-      - name: Prepare docs branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Fetch docs branch if exists, else create it
-          git fetch origin docs || true
-          git checkout docs || git checkout -b docs
-
-          # Clear old generated files (except README.md, SUMMARY.md if you want to keep them)
-          rm -rf users.md orders.md generated-gitbook pages/* || true
-
-      # 7️⃣ Copy generated files into docs branch
-      - name: Move generated files
-        run: |
-          # Move generated README.md to root
-          cp generated-gitbook/README.md ./README.md
-
-          # Move other endpoint pages to root
-          if [ -d generated-gitbook/pages ]; then
-            cp -r generated-gitbook/pages/* ./
-          fi
-
-          # Generate a simple SUMMARY.md
-          echo "# Table of contents" > SUMMARY.md
-          echo "* [Introduction](README.md)" >> SUMMARY.md
-          for f in *.md; do
-            if [ "$f" != "README.md" ] && [ "$f" != "SUMMARY.md" ]; then
-              echo "* [$(basename "$f" .md)]($f)" >> SUMMARY.md
-            fi
-          done
-
-      # 8️⃣ Commit & push
-      - name: Commit and push changes
-        run: |
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "ci: regenerate docs from OpenAPI"
-            git push origin docs
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Echo
+        run: echo "Workflow triggered successfully!"
