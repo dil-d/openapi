@@ -1,44 +1,65 @@
 # .github/workflows/openapi-generate.yml
 name: Generate GitBook docs from OpenAPI
+
 on:
   push:
+    branches:
+      - main
     paths:
-      - 'openapi/**'    # run when spec changes
+      - 'openapi/**'    # run when OpenAPI spec changes
 
 jobs:
   generate-and-push:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
+      # 1️⃣ Checkout the repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2️⃣ Setup Node.js
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Install deps (openapi-autodoc will run via npx)
-        run: npm ci || true
+      # 3️⃣ Install openapi-autodoc globally
+      - name: Install openapi-autodoc
+        run: npm install -g @gitbook/openapi-autodoc
 
-      - name: Generate gitbook docs from OpenAPI
+      # 4️⃣ Generate Markdown docs from OpenAPI
+      - name: Generate GitBook docs
         run: |
           npx @gitbook/openapi-autodoc -f ./openapi/openapi.yaml -o generated-gitbook
-          # generated-gitbook/ will contain markdown pages ready for GitBook sync
 
+      # 5️⃣ Debug: list generated files
+      - name: List generated files
+        run: ls -R generated-gitbook/
+
+      # 6️⃣ Commit & push to docs branch
       - name: Commit generated docs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -B docs
+
+          # Fetch docs branch if it exists, otherwise create it
+          git fetch origin docs || true
+          git checkout docs || git checkout -b docs
+
+          # Copy generated Markdown into the branch
           rsync -a generated-gitbook/ .
+
+          # Stage changes
           git add -A
-          if git diff --staged --quiet; then
-            echo "No changes"
+
+          # Commit only if there are changes
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
           else
             git commit -m "ci: regenerate docs from OpenAPI"
-            git push --set-upstream origin docs --force
+            git push origin docs
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
