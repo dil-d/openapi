@@ -1,7 +1,6 @@
 # .github/workflows/openapi-generate.yml
 name: Generate GitBook docs from OpenAPI
 
-# Trigger on any push to main branch
 on:
   push:
     branches:
@@ -12,57 +11,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2️⃣ Setup Node.js
-      - name: Set up Node
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # 3️⃣ Install openapi-autodoc globally
-      - name: Install openapi-autodoc
-        run: npm install -g @gitbook/openapi-autodoc
-
-      # 4️⃣ Generate GitBook Markdown from OpenAPI
-      - name: Generate GitBook docs
+      - name: Install dependencies
         run: |
-          # Adjust the path if your OpenAPI file is elsewhere
-          npx @gitbook/openapi-autodoc -f ./openapi/openapi.yaml -o generated-gitbook
+          npm install
 
-      # 5️⃣ Debug: list generated files
+      - name: Generate GitBook docs from OpenAPI
+        run: |
+          npx github:GitbookIO/openapi-autodoc -f ./openapi/openapi.yaml -o generated-gitbook
+
       - name: List generated files
         run: ls -R generated-gitbook/
 
-      # 6️⃣ Prepare docs branch
       - name: Prepare docs branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          # Fetch docs branch if it exists, else create it
           git fetch origin docs || true
           git checkout docs || git checkout -b docs
-
-          # Optional: clean old generated files
           rm -rf *.md || true
 
-      # 7️⃣ Move generated files into docs branch
       - name: Move generated files
         run: |
-          # Move README.md to root
           cp generated-gitbook/README.md ./README.md
-
-          # Move other pages to root
           if [ -d generated-gitbook/pages ]; then
             cp -r generated-gitbook/pages/* ./
           fi
-
-          # Generate a simple SUMMARY.md for GitBook Free
           echo "# Table of contents" > SUMMARY.md
           echo "* [Introduction](README.md)" >> SUMMARY.md
           for f in *.md; do
@@ -71,8 +54,7 @@ jobs:
             fi
           done
 
-      # 8️⃣ Commit & push changes
-      - name: Commit and push
+      - name: Commit and push changes
         run: |
           git add -A
           if git diff --cached --quiet; then
