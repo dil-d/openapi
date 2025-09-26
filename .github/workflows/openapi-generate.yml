@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: 18
 
-      # 3️⃣ Debug: list files
+      # 3️⃣ Debug: list repo files
       - name: List repo files
         run: ls -R
 
@@ -41,25 +41,39 @@ jobs:
           git checkout docs || git checkout -b docs
           rm -f README.md SUMMARY.md || true
 
-      # 6️⃣ Move generated README.md to root
+      # 6️⃣ Move generated README.md to root (if exists)
       - name: Move README.md
         run: |
-          cp generated-gitbook/README.md ./README.md || echo "README.md not generated"
+          if [ -f generated-gitbook/README.md ]; then
+            cp generated-gitbook/README.md ./README.md
+          else
+            echo "README.md not generated, skipping copy"
+          fi
 
       # 7️⃣ Generate simple SUMMARY.md
       - name: Generate SUMMARY.md
         run: |
           echo "# Table of contents" > SUMMARY.md
-          echo "* [Introduction](README.md)" >> SUMMARY.md
+          if [ -f README.md ]; then
+            echo "* [Introduction](README.md)" >> SUMMARY.md
+          fi
 
-      # 8️⃣ Commit & push changes
+      # 8️⃣ Commit & push only existing files
       - name: Commit and push
         run: |
-          git add README.md SUMMARY.md
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
+          files_to_add=""
+          [ -f README.md ] && files_to_add="$files_to_add README.md"
+          [ -f SUMMARY.md ] && files_to_add="$files_to_add SUMMARY.md"
+
+          if [ -n "$files_to_add" ]; then
+            git add $files_to_add
+            if git diff --cached --quiet; then
+              echo "No changes to commit"
+            else
+              git commit -m "ci: regenerate docs from OpenAPI"
+              git push origin docs
+            fi
           else
-            git commit -m "ci: regenerate docs from OpenAPI"
-            git push origin docs
+            echo "No files to commit"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
