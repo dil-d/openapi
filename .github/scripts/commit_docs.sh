@@ -17,7 +17,7 @@ if [ ${#files_to_add[@]} -gt 0 ]; then
         echo "No changes to commit"
     else
         git commit -m "ci: regenerate docs from OpenAPI"
-        git push origin docs
+        git push origin docs --force   # ✅ force push
     fi
 else
     echo "No files to commit"
