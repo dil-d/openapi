@@ -6,14 +6,14 @@ on:
     branches:
       - main
     paths:
-      - 'openapi/**'    # run when OpenAPI spec changes
+      - 'openapi/**'  # Trigger when OpenAPI spec changes
 
 jobs:
   generate-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout the repo
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -29,7 +29,7 @@ jobs:
       - name: Install openapi-autodoc
         run: npm install -g @gitbook/openapi-autodoc
 
-      # 4️⃣ Generate Markdown docs from OpenAPI
+      # 4️⃣ Generate GitBook Markdown from OpenAPI
       - name: Generate GitBook docs
         run: |
           npx @gitbook/openapi-autodoc -f ./openapi/openapi.yaml -o generated-gitbook
@@ -38,28 +38,47 @@ jobs:
       - name: List generated files
         run: ls -R generated-gitbook/
 
-      # 6️⃣ Commit & push to docs branch
-      - name: Commit generated docs
+      # 6️⃣ Prepare docs branch
+      - name: Prepare docs branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Fetch docs branch if it exists, otherwise create it
+          # Fetch docs branch if exists, else create it
           git fetch origin docs || true
           git checkout docs || git checkout -b docs
 
-          # Copy generated Markdown into the branch
-          rsync -a generated-gitbook/ .
+          # Clear old generated files (except README.md, SUMMARY.md if you want to keep them)
+          rm -rf users.md orders.md generated-gitbook pages/* || true
 
-          # Stage changes
+      # 7️⃣ Copy generated files into docs branch
+      - name: Move generated files
+        run: |
+          # Move generated README.md to root
+          cp generated-gitbook/README.md ./README.md
+
+          # Move other endpoint pages to root
+          if [ -d generated-gitbook/pages ]; then
+            cp -r generated-gitbook/pages/* ./
+          fi
+
+          # Generate a simple SUMMARY.md
+          echo "# Table of contents" > SUMMARY.md
+          echo "* [Introduction](README.md)" >> SUMMARY.md
+          for f in *.md; do
+            if [ "$f" != "README.md" ] && [ "$f" != "SUMMARY.md" ]; then
+              echo "* [$(basename "$f" .md)]($f)" >> SUMMARY.md
+            fi
+          done
+
+      # 8️⃣ Commit & push
+      - name: Commit and push changes
+        run: |
           git add -A
-
-          # Commit only if there are changes
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
             git commit -m "ci: regenerate docs from OpenAPI"
             git push origin docs
-          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
