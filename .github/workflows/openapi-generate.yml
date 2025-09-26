@@ -1,4 +1,3 @@
-# .github/workflows/openapi-generate.yml
 name: Generate GitBook docs from OpenAPI
 
 on:
@@ -20,10 +19,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 18
-
-      - name: Install dependencies
-        run: |
-          npm install
 
       - name: Generate GitBook docs from OpenAPI
         run: |
@@ -54,7 +49,7 @@ jobs:
             fi
           done
 
-      - name: Commit and push changes
+      - name: Commit and push
         run: |
           git add -A
           if git diff --cached --quiet; then
