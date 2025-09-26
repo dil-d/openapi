@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Configure Git author
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
 # Only proceed if generated-gitbook folder exists
 if [ ! -d generated-gitbook ]; then
   echo "generated-gitbook/ not found, creating placeholder files"
@@ -19,6 +23,7 @@ echo "* [Introduction](README.md)" >> SUMMARY.md
 files_to_add=("README.md" "SUMMARY.md")
 
 git add "${files_to_add[@]}"
+
 if git diff --cached --quiet; then
     echo "No changes to commit"
 else
