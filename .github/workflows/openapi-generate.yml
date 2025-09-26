@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: write   # allow pushing to branches
+  contents: write   # allows pushing to docs branch
 
 jobs:
   generate-and-push:
@@ -25,13 +25,9 @@ jobs:
         with:
           node-version: 18
 
-      # Install widdershins
-      - name: Install widdershins
+      # Install Widdershins via npx (no global install needed)
+      - name: Install dependencies
         run: npm install -g widdershins
-
-      # Debug: list repo files
-      - name: List repo files
-        run: ls -R
 
       # Make commit script executable
       - name: Make commit script executable

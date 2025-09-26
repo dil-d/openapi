@@ -5,12 +5,8 @@ set -e
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-# Generate markdown using widdershins
-mkdir -p generated-gitbook
-widdershins ./openapi.yaml -o generated-gitbook/api.md
-
-# Copy generated markdown files to root
-cp -r generated-gitbook/* .
+# Generate markdown directly at root using Widdershins
+npx widdershins ./openapi.yaml -o api.md
 
 # Ensure README.md exists
 if [ ! -f README.md ]; then
@@ -27,7 +23,7 @@ for f in *.md; do
 done
 
 # Add files to commit
-git add README.md SUMMARY.md *.md
+git add api.md README.md SUMMARY.md
 
 # Commit & push to docs branch
 if git diff --cached --quiet; then
