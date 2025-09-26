@@ -103,7 +103,7 @@ components:
           example: "abc123"
         quantity:
           type: integer
-          example: 9
+          example: 17
         status:
           type: string
           enum: [pending, confirmed, shipped]
