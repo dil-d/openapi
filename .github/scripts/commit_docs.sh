@@ -5,17 +5,11 @@ set -e
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-# Run OpenAPI autodoc generator
-npx github:GitbookIO/openapi-autodoc -f ./openapi.yaml || true
+# Generate markdown using widdershins
+mkdir -p generated-gitbook
+widdershins ./openapi.yaml -o generated-gitbook/api.md
 
-# Ensure generated-gitbook folder exists
-if [ ! -d generated-gitbook ]; then
-  echo "generated-gitbook/ not found, creating placeholder"
-  mkdir -p generated-gitbook
-  echo "# API Reference" > generated-gitbook/README.md
-fi
-
-# Copy all generated markdown files to repo root
+# Copy generated markdown files to root
 cp -r generated-gitbook/* .
 
 # Ensure README.md exists
@@ -35,7 +29,7 @@ done
 # Add files to commit
 git add README.md SUMMARY.md *.md
 
-# Commit and push to docs branch
+# Commit & push to docs branch
 if git diff --cached --quiet; then
     echo "No changes to commit"
 else
@@ -47,8 +41,6 @@ else
     # Checkout docs branch safely
     git fetch origin docs || true
     git checkout -B docs refs/remotes/origin/docs || git checkout -B docs
-
-    # Apply stashed changes (the generated files)
     git stash pop || true
 
     # Force push to remote docs branch
