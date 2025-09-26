@@ -58,7 +58,7 @@ jobs:
             echo "* [Introduction](README.md)" >> SUMMARY.md
           fi
 
-      # 8️⃣ Commit & push only existing files (fixed shell syntax)
+      # 8️⃣ Commit & push only existing files
       - name: Commit and push
         shell: bash
         run: |
