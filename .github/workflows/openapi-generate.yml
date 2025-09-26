@@ -22,7 +22,7 @@ jobs:
 
       - name: Generate GitBook docs from OpenAPI
         run: |
-          npx github:GitbookIO/openapi-autodoc -f ./openapi/openapi.yaml
+          npx github:GitbookIO/openapi-autodoc -f ./openapi.yaml
 
       - name: List generated files
         run: ls -R generated-gitbook/
