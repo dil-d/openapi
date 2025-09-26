@@ -1,3 +1,4 @@
+# .github/workflows/openapi-generate.yml
 name: Generate GitBook docs from OpenAPI
 
 on:
@@ -10,48 +11,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # 2️⃣ Setup Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
+      # 3️⃣ Debug: list files
+      - name: List repo files
+        run: ls -R
+
+      # 4️⃣ Generate GitBook README.md from OpenAPI
       - name: Generate GitBook docs from OpenAPI
         run: |
-          npx github:GitbookIO/openapi-autodoc -f ./openapi.yaml
+          npx github:GitbookIO/openapi-autodoc -f ./openapi.yaml || true
 
-      - name: List generated files
-        run: ls -R generated-gitbook/
-
+      # 5️⃣ Prepare docs branch
       - name: Prepare docs branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin docs || true
           git checkout docs || git checkout -b docs
-          rm -rf *.md || true
+          rm -f README.md SUMMARY.md || true
 
-      - name: Move generated files
+      # 6️⃣ Move generated README.md to root
+      - name: Move README.md
         run: |
-          cp generated-gitbook/README.md ./README.md
-          if [ -d generated-gitbook/pages ]; then
-            cp -r generated-gitbook/pages/* ./
-          fi
+          cp generated-gitbook/README.md ./README.md || echo "README.md not generated"
+
+      # 7️⃣ Generate simple SUMMARY.md
+      - name: Generate SUMMARY.md
+        run: |
           echo "# Table of contents" > SUMMARY.md
           echo "* [Introduction](README.md)" >> SUMMARY.md
-          for f in *.md; do
-            if [ "$f" != "README.md" ] && [ "$f" != "SUMMARY.md" ]; then
-              echo "* [$(basename "$f" .md)]($f)" >> SUMMARY.md
-            fi
-          done
 
+      # 8️⃣ Commit & push changes
       - name: Commit and push
         run: |
-          git add -A
+          git add README.md SUMMARY.md
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
