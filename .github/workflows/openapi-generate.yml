@@ -1,0 +1,44 @@
+# .github/workflows/openapi-generate.yml
+name: Generate GitBook docs from OpenAPI
+on:
+  push:
+    paths:
+      - 'openapi/**'    # run when spec changes
+
+jobs:
+  generate-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Install deps (openapi-autodoc will run via npx)
+        run: npm ci || true
+
+      - name: Generate gitbook docs from OpenAPI
+        run: |
+          npx @gitbook/openapi-autodoc -f ./openapi/openapi.yaml -o generated-gitbook
+          # generated-gitbook/ will contain markdown pages ready for GitBook sync
+
+      - name: Commit generated docs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B docs
+          rsync -a generated-gitbook/ .
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes"
+          else
+            git commit -m "ci: regenerate docs from OpenAPI"
+            git push --set-upstream origin docs --force
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
