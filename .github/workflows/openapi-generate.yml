@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write   # ✅ allow pushing to branches
+
 jobs:
   generate-and-push:
     runs-on: ubuntu-latest
@@ -39,6 +42,8 @@ jobs:
           git fetch origin docs || true
           git checkout docs || git checkout -b docs
           rm -f README.md SUMMARY.md || true
+          # 🔑 Ensure pushes authenticate with GITHUB_TOKEN
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
 
       # 6️⃣ Move generated README.md to root (if exists)
       - name: Move README.md
