@@ -18,11 +18,11 @@ if [ ${#files_to_add[@]} -gt 0 ]; then
     else
         git commit -m "ci: regenerate docs from OpenAPI"
 
-        # ✅ Ensure we're on the docs branch explicitly
+        # ✅ Avoid ambiguity between branch "docs" and folder "docs/"
         git fetch origin docs || true
-        git checkout -B docs origin/docs || git checkout -B docs
+        git checkout -B docs origin/docs --no-guess || git checkout -B docs
 
-        # ✅ Force push to docs branch (avoid conflict with local folder named docs)
+        # ✅ Force push to remote docs branch
         git push origin HEAD:docs --force
     fi
 else
