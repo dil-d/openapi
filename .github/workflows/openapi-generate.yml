@@ -6,66 +6,38 @@ on:
       - main
 
 permissions:
-  contents: write   # ✅ allow pushing to branches
+  contents: write   # allows pushing to branches
 
 jobs:
   generate-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
+      # Checkout repo
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2️⃣ Setup Node.js
+      # Setup Node.js
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # 3️⃣ Debug: list repo files
+      # Debug: list repo files
       - name: List repo files
         run: ls -R
 
-      # 4️⃣ Generate GitBook README.md from OpenAPI
-      - name: Generate GitBook docs from OpenAPI
+      # Generate GitBook docs from OpenAPI
+      - name: Generate GitBook docs
         run: |
           npx github:GitbookIO/openapi-autodoc -f ./openapi.yaml || true
 
-      # 5️⃣ Prepare docs branch
-      - name: Prepare docs branch
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin docs || true
-          git checkout docs || git checkout -b docs
-          rm -f README.md SUMMARY.md || true
-          # 🔑 Ensure pushes authenticate with GITHUB_TOKEN
-          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
-
-      # 6️⃣ Move generated README.md to root (if exists)
-      - name: Move README.md
-        run: |
-          if [ -f generated-gitbook/README.md ]; then
-              cp generated-gitbook/README.md ./README.md
-          else
-              echo "README.md not generated, skipping copy"
-          fi
-
-      # 7️⃣ Generate simple SUMMARY.md
-      - name: Generate SUMMARY.md
-        run: |
-          echo "# Table of contents" > SUMMARY.md
-          if [ -f README.md ]; then
-              echo "* [Introduction](README.md)" >> SUMMARY.md
-          fi
-
-      # 8️⃣ Ensure commit script is executable
+      # Ensure commit script is executable
       - name: Make commit script executable
         run: chmod +x .github/scripts/commit_docs.sh
 
-      # 9️⃣ Commit & push only existing files using external script
+      # Commit & push
       - name: Commit and push
         run: .github/scripts/commit_docs.sh
