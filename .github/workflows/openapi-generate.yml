@@ -6,14 +6,14 @@ on:
       - main
 
 permissions:
-  contents: write   # allows pushing to branches
+  contents: write   # allow pushing to branches
 
 jobs:
   generate-and-push:
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout repo
+      # Checkout repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -25,19 +25,18 @@ jobs:
         with:
           node-version: 18
 
+      # Install widdershins
+      - name: Install widdershins
+        run: npm install -g widdershins
+
       # Debug: list repo files
       - name: List repo files
         run: ls -R
 
-      # Generate GitBook docs from OpenAPI
-      - name: Generate GitBook docs
-        run: |
-          npx github:GitbookIO/openapi-autodoc -f ./openapi.yaml || true
-
-      # Ensure commit script is executable
+      # Make commit script executable
       - name: Make commit script executable
         run: chmod +x .github/scripts/commit_docs.sh
 
-      # Commit & push
-      - name: Commit and push
+      # Generate, commit, and push docs
+      - name: Generate API docs and push
         run: .github/scripts/commit_docs.sh
