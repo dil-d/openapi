@@ -17,6 +17,9 @@ node ./.github/scripts/inject-code-samples.mjs || true
 # Generate markdown directly at root using Widdershins
 npx widdershins ./openapi.yaml -o api.md
 
+# Convert code samples to GitBook tabs
+node ./.github/scripts/postprocess-gitbook-tabs.mjs || true
+
 # Ensure README.md exists
 if [ ! -f README.md ]; then
   echo "# API Reference" > README.md
