@@ -6,6 +6,7 @@ if (!fs.existsSync(filePath)) {
 }
 
 const specUrlBase = 'https://github.com/dil-d/openapi/blob/main/openapi.yaml';
+const redocUrlBase = null; // e.g., 'https://redocly.github.io/redoc/?url=https://raw.githubusercontent.com/dil-d/openapi/main/openapi.yaml'
 const specPath = './openapi.yaml';
 const specText = fs.existsSync(specPath) ? fs.readFileSync(specPath, 'utf8') : '';
 const specLines = specText ? specText.split(/\r?\n/) : [];
@@ -43,45 +44,59 @@ function findPathsIndex() {
 
 function leadingSpaces(line) { const m = line.match(/^(\s*)/); return m ? m[1].length : 0; }
 
-function findOperationLine(method, path) {
-  if (!specLines.length || !method || !path) return null;
+function findPathAndMethodIndexes(method, path) {
   const pathsIdx = findPathsIndex();
   if (pathsIdx === -1) return null;
 
-  // Locate exact path key and its indent
   const wanted = new Set([ `${path}:`, `'${path}':`, `"${path}":` ]);
-  let pathLineIdx = -1;
+  let pathIdx = -1;
   let pathIndent = 0;
   for (let i = pathsIdx + 1; i < specLines.length; i++) {
     const line = specLines[i];
     const t = line.trim();
     if (!t) continue;
-    // Stop if we hit a new top-level key (no indent)
     if (!/^\s/.test(line) && /:\s*$/.test(line)) break;
-    if (wanted.has(t)) { pathLineIdx = i; pathIndent = leadingSpaces(line); break; }
+    if (wanted.has(t)) { pathIdx = i; pathIndent = leadingSpaces(line); break; }
   }
-  if (pathLineIdx === -1) return null;
+  if (pathIdx === -1) return null;
 
-  // Search for method below this path; only break when a new path at same indent appears
-  const methodRe = new RegExp('^\s*' + method + '\s*:\\s*(#.*)?$','i');
-  for (let j = pathLineIdx + 1; j < specLines.length; j++) {
+  let methodIdx = -1;
+  for (let j = pathIdx + 1; j < specLines.length; j++) {
     const line = specLines[j];
     const t = line.trim();
     if (!t) continue;
     const ind = leadingSpaces(line);
-    // Next sibling path key: same indent as path and starts with '/'
     if (ind === pathIndent && /^\//.test(t) && /:\s*$/.test(t)) break;
-    // Leaving paths section
     if (!/^\s/.test(line) && /:\s*$/.test(line)) break;
-    if (methodRe.test(line)) return j + 1; // 1-based
+    if (new RegExp('^\s*' + method + '\\s*:\\s*(#.*)?$','i').test(line)) { methodIdx = j; break; }
   }
-  return pathLineIdx + 1;
+
+  return { pathIdx, methodIdx };
+}
+
+function findOperationId(methodIdx) {
+  if (methodIdx < 0) return null;
+  const methodIndent = leadingSpaces(specLines[methodIdx]);
+  for (let k = methodIdx + 1; k < specLines.length; k++) {
+    const line = specLines[k];
+    const t = line.trim();
+    if (!t) continue;
+    const ind = leadingSpaces(line);
+    if (ind <= methodIndent && /:\s*$/.test(line)) break;
+    const m = t.match(/^operationId:\s*(\S+)/);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 function buildSpecUrl(method, path) {
-  const line = findOperationLine(method, path);
-  if (line) return `${specUrlBase}#L${line}`;
-  return specUrlBase;
+  const idxs = findPathAndMethodIndexes(method, path);
+  if (!idxs) return specUrlBase;
+  const { pathIdx, methodIdx } = idxs;
+  const opId = findOperationId(methodIdx);
+  if (redocUrlBase && opId) return `${redocUrlBase}#operation/${opId}`;
+  if (methodIdx >= 0) return `${specUrlBase}#L${methodIdx + 1}`;
+  return `${specUrlBase}#L${pathIdx + 1}`;
 }
 
 let out = [];
@@ -148,4 +163,4 @@ while (i < lines.length) {
 }
 
 fs.writeFileSync(filePath, out.join('\n'), 'utf8');
-console.log('Post-processed api.md: added source links with anchors and GitBook tabs'); 
+console.log('Post-processed api.md: added source links (prefer operationId) and GitBook tabs'); 
