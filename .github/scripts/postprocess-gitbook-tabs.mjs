@@ -11,19 +11,10 @@ const specText = fs.existsSync(specPath) ? fs.readFileSync(specPath, 'utf8') : '
 const specLines = specText ? specText.split(/\r?\n/) : [];
 
 const src = fs.readFileSync(filePath, 'utf8');
-doubleCrLfToSingle();
 const lines = src.split(/\r?\n/);
 
-function doubleCrLfToSingle() {}
-
-function isFenceStart(line) {
-  return /^```(\w[\w+#.-]*)?\s*$/.test(line);
-}
-
-function fenceLang(line) {
-  const m = line.match(/^```(\w[\w+#.-]*)?\s*$/);
-  return m && m[1] ? m[1] : '';
-}
+function isFenceStart(line) { return /^```(\w[\w+#.-]*)?\s*$/.test(line); }
+function fenceLang(line) { const m = line.match(/^```(\w[\w+#.-]*)?\s*$/); return m && m[1] ? m[1] : ''; }
 
 function isOperationHeading(line) {
   if (!/^#{2,5}\s+/.test(line)) return false;
@@ -50,40 +41,39 @@ function findPathsIndex() {
   return -1;
 }
 
-function trimKey(line) {
-  return line.trim().replace(/^['"]|['"]:$/g, '').replace(/['"]:\s*$/, '');
-}
+function leadingSpaces(line) { const m = line.match(/^(\s*)/); return m ? m[1].length : 0; }
 
 function findOperationLine(method, path) {
   if (!specLines.length || !method || !path) return null;
   const pathsIdx = findPathsIndex();
   if (pathsIdx === -1) return null;
 
-  const wantedVariants = new Set([
-    `${path}:`, `'${path}':`, `"${path}":`
-  ])
-
+  // Locate exact path key and its indent
+  const wanted = new Set([ `${path}:`, `'${path}':`, `"${path}":` ]);
   let pathLineIdx = -1;
+  let pathIndent = 0;
   for (let i = pathsIdx + 1; i < specLines.length; i++) {
-    const t = specLines[i].trim();
+    const line = specLines[i];
+    const t = line.trim();
     if (!t) continue;
-    // If we reached a new top-level key (no indent), stop
-    if (!/^\s/.test(specLines[i]) && /:\s*$/.test(specLines[i])) break;
-    if (wantedVariants.has(t)) { pathLineIdx = i; break; }
+    // Stop if we hit a new top-level key (no indent)
+    if (!/^\s/.test(line) && /:\s*$/.test(line)) break;
+    if (wanted.has(t)) { pathLineIdx = i; pathIndent = leadingSpaces(line); break; }
   }
   if (pathLineIdx === -1) return null;
 
-  // Now find the method line directly below
-  const methodWanted = new Set([
-    `${method}:`, `${method.toLowerCase()}:`, `${method.toUpperCase()}:`
-  ]);
+  // Search for method below this path; only break when a new path at same indent appears
+  const methodRe = new RegExp('^\s*' + method + '\s*:\\s*(#.*)?$','i');
   for (let j = pathLineIdx + 1; j < specLines.length; j++) {
-    const t = specLines[j].trim();
+    const line = specLines[j];
+    const t = line.trim();
     if (!t) continue;
-    // Stop when we hit a sibling path or leave the paths block
-    if (/^\//.test(t) && /:\s*$/.test(t)) break;
-    if (!/^\s/.test(specLines[j]) && /:\s*$/.test(specLines[j])) break;
-    if (methodWanted.has(t)) return j + 1; // 1-indexed
+    const ind = leadingSpaces(line);
+    // Next sibling path key: same indent as path and starts with '/'
+    if (ind === pathIndent && /^\//.test(t) && /:\s*$/.test(t)) break;
+    // Leaving paths section
+    if (!/^\s/.test(line) && /:\s*$/.test(line)) break;
+    if (methodRe.test(line)) return j + 1; // 1-based
   }
   return pathLineIdx + 1;
 }
@@ -110,20 +100,13 @@ while (i < lines.length) {
     continue;
   }
 
-  if (!isFenceStart(lines[i])) {
-    out.push(lines[i]);
-    i++;
-    continue;
-  }
+  if (!isFenceStart(lines[i])) { out.push(lines[i]); i++; continue; }
 
   const blocks = [];
   let lang = fenceLang(lines[i]);
   i++;
   const code = [];
-  while (i < lines.length && lines[i] !== '```') {
-    code.push(lines[i]);
-    i++;
-  }
+  while (i < lines.length && lines[i] !== '```') { code.push(lines[i]); i++; }
   if (i < lines.length && lines[i] === '```') i++;
   blocks.push({ lang, code: code.join('\n') });
 
@@ -134,16 +117,12 @@ while (i < lines.length) {
       const lang2 = fenceLang(lines[i]);
       i++;
       const code2 = [];
-      while (i < lines.length && lines[i] !== '```') {
-        code2.push(lines[i]);
-        i++;
-      }
+      while (i < lines.length && lines[i] !== '```') { code2.push(lines[i]); i++; }
       if (i < lines.length && lines[i] === '```') i++;
       blocks.push({ lang: lang2, code: code2.join('\n') });
       continue;
     }
-    i = saveI;
-    break;
+    i = saveI; break;
   }
 
   if (blocks.length >= 2) {
