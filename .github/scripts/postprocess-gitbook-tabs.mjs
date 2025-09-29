@@ -35,6 +35,28 @@ function headingToMethodPath(line) {
   return null;
 }
 
+function isHtmlOperationHeading(line) {
+  const m = line.match(/^<h([2-5])\b[^>]*id="([^"]+)"[^>]*>(.*?)<\/h\1>/i);
+  if (!m) return false;
+  const id = m[2];
+  const text = m[3].replace(/<[^>]+>/g, '').trim();
+  if (/^[a-z]+__\S+$/i.test(id)) return true;
+  if (/(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\b/i.test(text) && /\//.test(text)) return true;
+  return false;
+}
+
+function htmlHeadingToMethodPath(line) {
+  const m = line.match(/^<h([2-5])\b[^>]*id="([^"]+)"[^>]*>(.*?)<\/h\1>/i);
+  if (!m) return null;
+  const id = m[2];
+  const text = m[3].replace(/<[^>]+>/g, '').trim();
+  let mm = id.match(/^([a-z]+)__([\s\S]+)$/i);
+  if (mm) return { method: mm[1].toLowerCase(), path: '/' + mm[2].replace(/__/g, '/') };
+  mm = text.match(/^(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\s+(.+)$/i);
+  if (mm) return { method: mm[1].toLowerCase(), path: mm[2].trim() };
+  return null;
+}
+
 function findPathsIndex() {
   for (let i = 0; i < specLines.length; i++) {
     if (/^\s*paths:\s*$/.test(specLines[i])) return i;
@@ -102,6 +124,21 @@ function buildSpecUrl(method, path) {
 let out = [];
 let i = 0;
 while (i < lines.length) {
+  // HTML headings
+  if (isHtmlOperationHeading(lines[i])) {
+    const mp = htmlHeadingToMethodPath(lines[i]);
+    const linkUrl = mp ? buildSpecUrl(mp.method, mp.path) : specUrlBase;
+    out.push(lines[i]);
+    const next = lines[i + 1] || '';
+    if (!/\[View in OpenAPI source\]/.test(next)) {
+      out.push(`[View in OpenAPI source](${linkUrl})`);
+      out.push('');
+    }
+    i++;
+    continue;
+  }
+
+  // Markdown headings
   if (isOperationHeading(lines[i])) {
     const mp = headingToMethodPath(lines[i]);
     const linkUrl = mp ? buildSpecUrl(mp.method, mp.path) : specUrlBase;
@@ -163,4 +200,4 @@ while (i < lines.length) {
 }
 
 fs.writeFileSync(filePath, out.join('\n'), 'utf8');
-console.log('Post-processed api.md: added source links (prefer operationId) and GitBook tabs'); 
+console.log('Post-processed api.md: added source links (markdown+HTML headings) and GitBook tabs'); 
