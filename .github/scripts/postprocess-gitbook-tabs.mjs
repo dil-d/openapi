@@ -50,7 +50,6 @@ function headingToMethodPath(line) {
   if (m) {
     method = m[1].toLowerCase();
     const raw = m[2];
-    // Widdershins encodes path separators as double underscore
     path = '/' + raw.replace(/__/g, '/');
     return { method, path };
   }
@@ -61,27 +60,55 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, r => `\\${r}`);
 }
 
+function leadingSpaces(line) {
+  const m = line.match(/^(\s*)/);
+  return m ? m[1].length : 0;
+}
+
+function findPathsSectionStart() {
+  for (let i = 0; i < specLines.length; i++) {
+    if (/^\s*paths:\s*$/.test(specLines[i])) return { idx: i, indent: leadingSpaces(specLines[i]) };
+  }
+  return null;
+}
+
 function findOperationLine(method, path) {
   if (!specLines.length || !method || !path) return null;
-  // Find the path key line
-  const pathKeyPattern = new RegExp('^\\s*[\"\']?' + escapeRegex(path) + '[\"\']?\\s*:\\s*$');
+  const pathsSection = findPathsSectionStart();
+  if (!pathsSection) return null;
+  const { idx: pathsIdx, indent: pathsIndent } = pathsSection;
+
+  // Find the specific path key under paths:
+  const pathKeyPattern = new RegExp('^(\\s*)(["\']?' + escapeRegex(path) + '["\']?):\\s*$');
   let pathLineIdx = -1;
-  for (let i = 0; i < specLines.length; i++) {
-    if (pathKeyPattern.test(specLines[i])) { pathLineIdx = i; break; }
-  }
-  if (pathLineIdx === -1) return null;
-  // From path line, scan forward for method:
-  const methodPattern = new RegExp('^\\s*' + escapeRegex(method) + '\\s*:\\s*$','i');
-  for (let j = pathLineIdx + 1; j < specLines.length; j++) {
-    const line = specLines[j];
-    if (/^\s*\w/.test(line) && !/^\s/.test(line)) {
-      // Likely next top-level section
+  let pathIndent = 0;
+  for (let i = pathsIdx + 1; i < specLines.length; i++) {
+    const line = specLines[i];
+    const ind = leadingSpaces(line);
+    // Stop if we return to same or less indent than paths (end of paths section)
+    if (ind <= pathsIndent && /:\s*$/.test(line)) break;
+    const m = line.match(pathKeyPattern);
+    if (m) {
+      pathLineIdx = i;
+      pathIndent = m[1].length; // indent of the path key
       break;
     }
-    if (methodPattern.test(line)) {
-      return j + 1; // GitHub is 1-indexed
+  }
+  if (pathLineIdx === -1) return null;
+
+  // Now scan for method under this path, must be more indented than pathIndent
+  const methodPattern = new RegExp('^(\\s*)' + escapeRegex(method) + '\\s*:\\s*$','i');
+  for (let j = pathLineIdx + 1; j < specLines.length; j++) {
+    const line = specLines[j];
+    const ind = leadingSpaces(line);
+    // If indentation is <= pathIndent and looks like a new key, we've left this path block
+    if (ind <= pathIndent && /:\s*$/.test(line)) break;
+    const mm = line.match(methodPattern);
+    if (mm && mm[1].length > pathIndent) {
+      return j + 1; // 1-indexed for GitHub anchors
     }
   }
+  // Fallback to the path key line if method not found
   return pathLineIdx + 1;
 }
 
