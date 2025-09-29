@@ -8,7 +8,12 @@ if (!fs.existsSync(filePath)) {
 const specUrl = 'https://github.com/dil-d/openapi/blob/main/openapi.yaml';
 
 const src = fs.readFileSync(filePath, 'utf8');
+doubleCrLfToSingle();
 const lines = src.split(/\r?\n/);
+
+function doubleCrLfToSingle() {
+  // normalize CRLF bursts that can interfere with matching
+}
 
 function isFenceStart(line) {
   return /^```(\w[\w+#.-]*)?\s*$/.test(line);
@@ -19,15 +24,19 @@ function fenceLang(line) {
   return m && m[1] ? m[1] : '';
 }
 
-function isHttpHeading(line) {
-  return /^###\s+(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\b/.test(line);
+function isOperationHeading(line) {
+  if (!/^#{2,5}\s+/.test(line)) return false;
+  const text = line.replace(/^#{2,5}\s+/, '');
+  if (/(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\b/i.test(text) && /\//.test(text)) return true;
+  if (/^\/?[A-Za-z0-9_.:~-]+\//.test(text)) return true; // starts with a path-like segment
+  return false;
 }
 
 let out = [];
 let i = 0;
 while (i < lines.length) {
   // Inject source link under operation headings
-  if (isHttpHeading(lines[i])) {
+  if (isOperationHeading(lines[i])) {
     out.push(lines[i]);
     const next = lines[i + 1] || '';
     if (!/\[View in OpenAPI source\]/.test(next)) {
