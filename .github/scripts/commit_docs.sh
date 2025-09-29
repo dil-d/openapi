@@ -5,6 +5,12 @@ set -e
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+# Ensure we have the latest refs
+git fetch --prune --tags --force origin
+
+# Create/update docs branch from origin/main so openapi.yaml exists there
+git checkout -B docs origin/main
+
 # Generate markdown directly at root using Widdershins
 npx widdershins ./openapi.yaml -o api.md
 
@@ -30,15 +36,5 @@ if git diff --cached --quiet; then
     echo "No changes to commit"
 else
     git commit -m "ci: regenerate docs from OpenAPI"
-
-    # Stash local changes before switching branches
-    git stash push -u -m "temp stash before switching branch" || true
-
-    # Checkout docs branch safely
-    git fetch origin docs || true
-    git checkout -B docs refs/remotes/origin/docs || git checkout -B docs
-    git stash pop || true
-
-    # Force push to remote docs branch
     git push origin HEAD:docs --force
 fi

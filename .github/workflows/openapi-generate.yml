@@ -25,10 +25,6 @@ jobs:
         with:
           node-version: 18
 
-      # Install Widdershins via npx (no global install needed)
-      - name: Install dependencies
-        run: npm install -g widdershins
-
       # Make commit script executable
       - name: Make commit script executable
         run: chmod +x .github/scripts/commit_docs.sh
