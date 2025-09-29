@@ -14,9 +14,7 @@ const src = fs.readFileSync(filePath, 'utf8');
 doubleCrLfToSingle();
 const lines = src.split(/\r?\n/);
 
-function doubleCrLfToSingle() {
-  // normalize CRLF bursts that can interfere with matching
-}
+function doubleCrLfToSingle() {}
 
 function isFenceStart(line) {
   return /^```(\w[\w+#.-]*)?\s*$/.test(line);
@@ -32,83 +30,61 @@ function isOperationHeading(line) {
   const text = line.replace(/^#{2,5}\s+/, '');
   if (/(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\b/i.test(text) && /\//.test(text)) return true;
   if (/^\/?[A-Za-z0-9_.:~-]+\//.test(text)) return true;
-  if (/^[a-z]+__\S+$/i.test(text)) return true; // e.g., get__users, post__orders
+  if (/^[a-z]+__\S+$/i.test(text)) return true;
   return false;
 }
 
 function headingToMethodPath(line) {
   const text = line.replace(/^#{2,5}\s+/, '').trim();
-  let method = '';
-  let path = '';
   let m = text.match(/^(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\s+(.+)$/i);
-  if (m) {
-    method = m[1].toLowerCase();
-    path = m[2].trim();
-    return { method, path };
-  }
+  if (m) return { method: m[1].toLowerCase(), path: m[2].trim() };
   m = text.match(/^([a-z]+)__([\s\S]+)$/i);
-  if (m) {
-    method = m[1].toLowerCase();
-    const raw = m[2];
-    path = '/' + raw.replace(/__/g, '/');
-    return { method, path };
-  }
+  if (m) return { method: m[1].toLowerCase(), path: '/' + m[2].replace(/__/g, '/') };
   return null;
 }
 
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, r => `\\${r}`);
-}
-
-function leadingSpaces(line) {
-  const m = line.match(/^(\s*)/);
-  return m ? m[1].length : 0;
-}
-
-function findPathsSectionStart() {
+function findPathsIndex() {
   for (let i = 0; i < specLines.length; i++) {
-    if (/^\s*paths:\s*$/.test(specLines[i])) return { idx: i, indent: leadingSpaces(specLines[i]) };
+    if (/^\s*paths:\s*$/.test(specLines[i])) return i;
   }
-  return null;
+  return -1;
+}
+
+function trimKey(line) {
+  return line.trim().replace(/^['"]|['"]:$/g, '').replace(/['"]:\s*$/, '');
 }
 
 function findOperationLine(method, path) {
   if (!specLines.length || !method || !path) return null;
-  const pathsSection = findPathsSectionStart();
-  if (!pathsSection) return null;
-  const { idx: pathsIdx, indent: pathsIndent } = pathsSection;
+  const pathsIdx = findPathsIndex();
+  if (pathsIdx === -1) return null;
 
-  // Find the specific path key under paths:
-  const pathKeyPattern = new RegExp('^(\\s*)(["\']?' + escapeRegex(path) + '["\']?):\\s*$');
+  const wantedVariants = new Set([
+    `${path}:`, `'${path}':`, `"${path}":`
+  ])
+
   let pathLineIdx = -1;
-  let pathIndent = 0;
   for (let i = pathsIdx + 1; i < specLines.length; i++) {
-    const line = specLines[i];
-    const ind = leadingSpaces(line);
-    // Stop if we return to same or less indent than paths (end of paths section)
-    if (ind <= pathsIndent && /:\s*$/.test(line)) break;
-    const m = line.match(pathKeyPattern);
-    if (m) {
-      pathLineIdx = i;
-      pathIndent = m[1].length; // indent of the path key
-      break;
-    }
+    const t = specLines[i].trim();
+    if (!t) continue;
+    // If we reached a new top-level key (no indent), stop
+    if (!/^\s/.test(specLines[i]) && /:\s*$/.test(specLines[i])) break;
+    if (wantedVariants.has(t)) { pathLineIdx = i; break; }
   }
   if (pathLineIdx === -1) return null;
 
-  // Now scan for method under this path, must be more indented than pathIndent
-  const methodPattern = new RegExp('^(\\s*)' + escapeRegex(method) + '\\s*:\\s*$','i');
+  // Now find the method line directly below
+  const methodWanted = new Set([
+    `${method}:`, `${method.toLowerCase()}:`, `${method.toUpperCase()}:`
+  ]);
   for (let j = pathLineIdx + 1; j < specLines.length; j++) {
-    const line = specLines[j];
-    const ind = leadingSpaces(line);
-    // If indentation is <= pathIndent and looks like a new key, we've left this path block
-    if (ind <= pathIndent && /:\s*$/.test(line)) break;
-    const mm = line.match(methodPattern);
-    if (mm && mm[1].length > pathIndent) {
-      return j + 1; // 1-indexed for GitHub anchors
-    }
+    const t = specLines[j].trim();
+    if (!t) continue;
+    // Stop when we hit a sibling path or leave the paths block
+    if (/^\//.test(t) && /:\s*$/.test(t)) break;
+    if (!/^\s/.test(specLines[j]) && /:\s*$/.test(specLines[j])) break;
+    if (methodWanted.has(t)) return j + 1; // 1-indexed
   }
-  // Fallback to the path key line if method not found
   return pathLineIdx + 1;
 }
 
@@ -121,10 +97,9 @@ function buildSpecUrl(method, path) {
 let out = [];
 let i = 0;
 while (i < lines.length) {
-  // Inject source link under operation headings
   if (isOperationHeading(lines[i])) {
-    const methodPath = headingToMethodPath(lines[i]);
-    const linkUrl = methodPath ? buildSpecUrl(methodPath.method, methodPath.path) : specUrlBase;
+    const mp = headingToMethodPath(lines[i]);
+    const linkUrl = mp ? buildSpecUrl(mp.method, mp.path) : specUrlBase;
     out.push(lines[i]);
     const next = lines[i + 1] || '';
     if (!/\[View in OpenAPI source\]/.test(next)) {
@@ -135,7 +110,6 @@ while (i < lines.length) {
     continue;
   }
 
-  // Tabs conversion for consecutive fences
   if (!isFenceStart(lines[i])) {
     out.push(lines[i]);
     i++;
