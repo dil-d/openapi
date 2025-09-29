@@ -25,10 +25,14 @@ function fenceLang(line) {
 }
 
 function isOperationHeading(line) {
+  // GitBook/Widdershins may emit headings like:
+  //  - '### GET /users'
+  //  - '## get__users' (operationId style)
   if (!/^#{2,5}\s+/.test(line)) return false;
   const text = line.replace(/^#{2,5}\s+/, '');
   if (/(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\b/i.test(text) && /\//.test(text)) return true;
-  if (/^\/?[A-Za-z0-9_.:~-]+\//.test(text)) return true; // starts with a path-like segment
+  if (/^\/?[A-Za-z0-9_.:~-]+\//.test(text)) return true;
+  if (/^[a-z]+__\S+$/i.test(text)) return true; // e.g., get__users, post__orders
   return false;
 }
 
