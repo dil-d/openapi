@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Redirect to GitBook</title>
+  <!-- meta refresh fallback -->
+  <meta http-equiv="refresh" content="0;url=https://thoughtfocus.gitbook.io/sola" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <script>
+    // JavaScript redirect (preferred because it is faster & can keep a redirect log)
+    const target = 'https://thoughtfocus.gitbook.io/sola';
+    // Optional: report redirect to your logging endpoint (uncomment if you have one)
+    // navigator.sendBeacon('/redirect-log', JSON.stringify({from: location.href, to: target, t: Date.now()}));
+    window.location.replace(target);
+  </script>
+</head>
+<body>
+  <p>If you are not redirected automatically, <a href="https://thoughtfocus.gitbook.io/sola">click here</a>.</p>
+</body>
+</html>
