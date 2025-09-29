@@ -21,12 +21,10 @@ if [ ! -f README.md ]; then
   echo "This documentation is generated automatically from OpenAPI spec." >> README.md
 fi
 
-# Generate SUMMARY.md dynamically
+# Generate SUMMARY.md with custom labels
 echo "# Table of contents" > SUMMARY.md
-for f in *.md; do
-  [[ "$f" == "SUMMARY.md" ]] && continue
-  echo "* [$f]($f)" >> SUMMARY.md
-done
+echo "* [Overview](README.md)" >> SUMMARY.md
+echo "* [API](api.md)" >> SUMMARY.md
 
 # Add files to commit
 git add api.md README.md SUMMARY.md
