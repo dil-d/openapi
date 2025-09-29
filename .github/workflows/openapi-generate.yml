@@ -25,6 +25,10 @@ jobs:
         with:
           node-version: 18
 
+      # Install deps for snippet injection (no package.json)
+      - name: Install injector dependencies
+        run: npm install --no-audit --no-fund --no-save js-yaml openapi-snippet
+
       # Make commit script executable
       - name: Make commit script executable
         run: chmod +x .github/scripts/commit_docs.sh

@@ -11,6 +11,9 @@ git fetch --prune --tags --force origin
 # Create/update docs branch from origin/main so openapi.yaml exists there
 git checkout -B docs origin/main
 
+# Inject multi-language code samples into the OpenAPI spec
+node ./.github/scripts/inject-code-samples.mjs || true
+
 # Generate markdown directly at root using Widdershins
 npx widdershins ./openapi.yaml -o api.md
 
