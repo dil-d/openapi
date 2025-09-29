@@ -25,6 +25,10 @@ jobs:
         with:
           node-version: 18
 
+      # Install dev dependencies for snippet injection
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
       # Make commit script executable
       - name: Make commit script executable
         run: chmod +x .github/scripts/commit_docs.sh

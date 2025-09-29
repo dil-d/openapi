@@ -1,0 +1,9 @@
+{
+  "name": "openapi-docs",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "js-yaml": "^4.1.0",
+    "openapi-snippet": "^0.14.0"
+  }
+} 
