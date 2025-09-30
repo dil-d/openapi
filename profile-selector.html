@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>API Profile Selector</title>
+    <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; padding: 24px; }
+    .card { max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    p { color: #4b5563; margin: 0 0 20px; }
+    .row { display: flex; gap: 12px; align-items: center; }
+    select, button { height: 40px; padding: 0 12px; font-size: 14px; }
+    button { background: #111827; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #0b1220; }
+    .muted { color: #6b7280; font-size: 12px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+<div class="card">
+    <h1>Choose Profile</h1>
+    <p>Select a profile to open in GitBook.</p>
+    <div class="row">
+        <select id="profile">
+            <option value="public">Public</option>
+            <option value="partner">Partner</option>
+            <option value="internal">Internal</option>
+        </select>
+        <button id="go">Open</button>
+    </div>
+    <p class="muted">Or open the full API reference.</p>
+    <div class="row" style="margin-top:8px">
+        <button id="full">Full API</button>
+    </div>
+</div>
+<script>
+    const gitbookBaseUrl = '__GITBOOK_BASE_URL__';
+    const routes = { public: 'api-public', partner: 'api-partner', internal: 'api-internal', full: 'api' };
+    function toGitBook(route) { return gitbookBaseUrl.replace(/\/$/, '') + '/' + route; }
+    function navigate(profile) { const route = routes[profile] || routes.full; window.location.href = toGitBook(route); }
+    document.getElementById('go').addEventListener('click', function(){ navigate(document.getElementById('profile').value); });
+    document.getElementById('full').addEventListener('click', function(){ navigate('full'); });
+  </script>
+</body>
+</html>
