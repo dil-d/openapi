@@ -114,18 +114,22 @@ EOF
 
 git add profiles.html profiles.md
 
-# Ensure README.md exists
-if [ ! -f README.md ]; then
-  echo "# API Reference" > README.md
-  echo "" >> README.md
-  echo "This documentation is generated automatically from OpenAPI spec." >> README.md
-fi
+# Make Profiles the landing page by redirecting README.md to profiles.md
+cat > README.md << 'EOF'
+# API Reference
 
-# Generate SUMMARY.md with custom labels
+If you are not redirected automatically, use the Profiles link in the left menu.
+
+<script>
+  // Redirect to Profiles page inside GitBook
+  window.location.href = 'profiles.md';
+</script>
+EOF
+
+# Generate SUMMARY.md with Profiles first
 echo "# Table of contents" > SUMMARY.md
-echo "* [Overview](README.md)" >> SUMMARY.md
 echo "* [Profiles](profiles.md)" >> SUMMARY.md
-echo "* [API](api.md)" >> SUMMARY.md
+echo "* [Full API](api.md)" >> SUMMARY.md
 echo "* [API (Public)](api-public.md)" >> SUMMARY.md
 echo "* [API (Partner)](api-partner.md)" >> SUMMARY.md
 echo "* [API (Internal)](api-internal.md)" >> SUMMARY.md
@@ -137,6 +141,6 @@ git add api.md README.md SUMMARY.md
 if git diff --cached --quiet; then
     echo "No changes to commit"
 else
-    git commit -m "ci: regenerate docs from OpenAPI (with profiles + static UI)"
+    git commit -m "ci: set Profiles as landing page"
     git push origin HEAD:docs --force
 fi
