@@ -6,7 +6,8 @@ if (process.argv.length < 4) {
   process.exit(1);
 }
 
-const [,, profile, outPath] = process.argv;
+const [,, rawProfile, outPath] = process.argv;
+const profile = String(rawProfile).toLowerCase().trim();
 const specPath = './openapi.yaml';
 const text = fs.readFileSync(specPath, 'utf8');
 const spec = yaml.load(text);
@@ -20,8 +21,8 @@ if (profile === 'public') {
 
 function includesProfile(value) {
   if (!value) return false;
-  if (Array.isArray(value)) return value.includes(profile);
-  if (typeof value === 'string') return value.split(',').map(s => s.trim()).includes(profile);
+  if (Array.isArray(value)) return value.map(v => String(v).toLowerCase().trim()).includes(profile);
+  if (typeof value === 'string') return value.split(',').map(s => s.toLowerCase().trim()).includes(profile);
   return false;
 }
 
