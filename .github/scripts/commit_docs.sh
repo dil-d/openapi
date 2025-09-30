@@ -15,7 +15,7 @@ git checkout -B docs origin/main
 PROFILES=(public partner internal)
 
 # Clean previous generated files
-rm -f api.md api-*.md openapi-*.yaml profiles.html profiles.md
+rm -f api.md api-*.md openapi-*.yaml profiles.html profiles.md profile-selector.html
 
 for PROFILE in "${PROFILES[@]}"; do
   OUT_SPEC="openapi-${PROFILE}.yaml"
@@ -71,21 +71,76 @@ cat > profiles.html << 'EOF'
     </div>
   </div>
   <script>
-    function navigate(profile) {
-      var target = 'api-' + profile + '.md';
-      window.location.href = target;
+    const gitbookBaseUrl = '__GITBOOK_BASE_URL__';
+    const routes = { public: 'api-public', partner: 'api-partner', internal: 'api-internal', full: 'api' };
+    function toGitBook(route) {
+      if (gitbookBaseUrl && gitbookBaseUrl !== '__GITBOOK_BASE_URL__') {
+        return gitbookBaseUrl.replace(/\/$/, '') + '/' + route;
+      }
+      return route + '.md';
     }
-    document.getElementById('go').addEventListener('click', function(){
-      var p = document.getElementById('profile').value;
-      navigate(p);
-    });
-    document.getElementById('full').addEventListener('click', function(){
-      window.location.href = 'api.md';
-    });
+    function navigate(profile) { const route = routes[profile] || routes.full; window.location.href = toGitBook(route); }
+    document.getElementById('go').addEventListener('click', function(){ navigate(document.getElementById('profile').value); });
+    document.getElementById('full').addEventListener('click', function(){ navigate('full'); });
   </script>
 </body>
 </html>
 EOF
+
+# Standalone selector for hosting anywhere
+cat > profile-selector.html << 'EOF'
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>API Profile Selector</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; padding: 24px; }
+    .card { max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    p { color: #4b5563; margin: 0 0 20px; }
+    .row { display: flex; gap: 12px; align-items: center; }
+    select, button { height: 40px; padding: 0 12px; font-size: 14px; }
+    button { background: #111827; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #0b1220; }
+    .muted { color: #6b7280; font-size: 12px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Choose Profile</h1>
+    <p>Select a profile to open in GitBook.</p>
+    <div class="row">
+      <select id="profile">
+        <option value="public">Public</option>
+        <option value="partner">Partner</option>
+        <option value="internal">Internal</option>
+      </select>
+      <button id="go">Open</button>
+    </div>
+    <p class="muted">Or open the full API reference.</p>
+    <div class="row" style="margin-top:8px">
+      <button id="full">Full API</button>
+    </div>
+  </div>
+  <script>
+    const gitbookBaseUrl = '__GITBOOK_BASE_URL__';
+    const routes = { public: 'api-public', partner: 'api-partner', internal: 'api-internal', full: 'api' };
+    function toGitBook(route) { return gitbookBaseUrl.replace(/\/$/, '') + '/' + route; }
+    function navigate(profile) { const route = routes[profile] || routes.full; window.location.href = toGitBook(route); }
+    document.getElementById('go').addEventListener('click', function(){ navigate(document.getElementById('profile').value); });
+    document.getElementById('full').addEventListener('click', function(){ navigate('full'); });
+  </script>
+</body>
+</html>
+EOF
+
+# Inject GitBook base URL from CI secret into both selectors
+if [ -n "$GITBOOK_BASE_URL" ]; then
+  sed -i "s|__GITBOOK_BASE_URL__|$GITBOOK_BASE_URL|g" profiles.html || true
+  sed -i "s|__GITBOOK_BASE_URL__|$GITBOOK_BASE_URL|g" profile-selector.html || true
+fi
 
 cat > profiles.md << 'EOF'
 # Select API Profile
@@ -112,7 +167,7 @@ cat > profiles.md << 'EOF'
 </script>
 EOF
 
-git add profiles.html profiles.md
+git add profiles.html profiles.md profile-selector.html
 
 # Markdown-only landing (no JS redirect)
 cat > README.md << 'EOF'
@@ -124,6 +179,8 @@ cat > README.md << 'EOF'
 - Public: [api-public.md](api-public.md)
 - Partner: [api-partner.md](api-partner.md)
 - Internal: [api-internal.md](api-internal.md)
+
+Standalone selector (outside GitBook): [profile-selector.html](profile-selector.html)
 EOF
 
 # Generate SUMMARY.md with Profiles first
@@ -141,6 +198,6 @@ git add api.md README.md SUMMARY.md
 if git diff --cached --quiet; then
     echo "No changes to commit"
 else
-    git commit -m "ci: markdown-only landing to Profiles"
+    git commit -m "ci: generate profile-selector.html and inject GitBook base URL"
     git push origin HEAD:docs --force
 fi
