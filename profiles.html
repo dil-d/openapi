@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>API Profile Selector</title>
+  <title>Select API Profile</title>
   <style>
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; padding: 24px; }
     .card { max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); }
@@ -18,17 +18,17 @@
 </head>
 <body>
   <div class="card">
-    <h1>Choose Profile</h1>
-    <p>Select a profile to open in GitBook.</p>
+    <h1>Select API Profile</h1>
+    <p>Choose a profile to view documentation filtered by <code>x-profiles</code>.</p>
     <div class="row">
       <select id="profile">
         <option value="public">Public</option>
         <option value="partner">Partner</option>
         <option value="internal">Internal</option>
       </select>
-      <button id="go">Open</button>
+      <button id="go">Go</button>
     </div>
-    <p class="muted">Or open the full API reference.</p>
+    <p class="muted">You can also view the full API without filtering.</p>
     <div class="row" style="margin-top:8px">
       <button id="full">Full API</button>
     </div>
@@ -36,7 +36,12 @@
   <script>
     const gitbookBaseUrl = 'https://thoughtfocus.gitbook.io/openapi-1';
     const routes = { public: 'api-public', partner: 'api-partner', internal: 'api-internal', full: 'api' };
-    function toGitBook(route) { return gitbookBaseUrl.replace(/\/$/, '') + '/' + route; }
+    function toGitBook(route) {
+      if (gitbookBaseUrl) {
+        return gitbookBaseUrl.replace(/\/$/, '') + '/' + route;
+      }
+      return route + '.md';
+    }
     function navigate(profile) { const route = routes[profile] || routes.full; window.location.href = toGitBook(route); }
     document.getElementById('go').addEventListener('click', function(){ navigate(document.getElementById('profile').value); });
     document.getElementById('full').addEventListener('click', function(){ navigate('full'); });
