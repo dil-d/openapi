@@ -11,6 +11,13 @@ const specPath = './openapi.yaml';
 const text = fs.readFileSync(specPath, 'utf8');
 const spec = yaml.load(text);
 
+// If profile is "public", do not filter — keep everything
+if (profile === 'public') {
+  fs.writeFileSync(outPath, yaml.dump(spec, { lineWidth: -1 }), 'utf8');
+  console.log(`Wrote unfiltered spec for profile '${profile}' to ${outPath}`);
+  process.exit(0);
+}
+
 function includesProfile(value) {
   if (!value) return false;
   if (Array.isArray(value)) return value.includes(profile);
@@ -28,7 +35,8 @@ for (const [p, pathItem] of Object.entries(spec.paths || {})) {
     const op = pathItem[m];
     if (!op) continue;
     const opProfiles = op['x-profiles'];
-    if (!opProfiles || includesProfile(opProfiles)) {
+    // For non-public profiles: keep only operations explicitly tagged with the selected profile
+    if (includesProfile(opProfiles)) {
       newPathItem[m] = op;
     }
   }

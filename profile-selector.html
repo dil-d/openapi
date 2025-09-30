@@ -34,7 +34,7 @@
     </div>
 </div>
 <script>
-    const gitbookBaseUrl = '__GITBOOK_BASE_URL__';
+    const gitbookBaseUrl = 'https://thoughtfocus.gitbook.io/openapi-1';
     const routes = { public: 'api-public', partner: 'api-partner', internal: 'api-internal', full: 'api' };
     function toGitBook(route) { return gitbookBaseUrl.replace(/\/$/, '') + '/' + route; }
     function navigate(profile) { const route = routes[profile] || routes.full; window.location.href = toGitBook(route); }

@@ -139,7 +139,14 @@ cat > profile-selector.html << EOF
 </html>
 EOF
 
-# GitBook in-repo page with simple profile links (for left nav)
+# Overview page content
+cat > README.md << 'EOF'
+# Overview
+
+This is a test overview
+EOF
+
+# GitBook in-repo page with simple profile links (kept but not listed)
 cat > profiles.md << 'EOF'
 # Select API Profile
 
@@ -149,37 +156,23 @@ cat > profiles.md << 'EOF'
 - Full: [api](api.md)
 EOF
 
-git add profiles.html profiles.md profile-selector.html
+git add profiles.html profiles.md profile-selector.html README.md
 
-# Markdown-only landing (no JS redirect)
-cat > README.md << 'EOF'
-# API Reference
-
-> Start here: [Select a Profile](profiles.md)
-
-- Full API: [api.md](api.md)
-- Public: [api-public.md](api-public.md)
-- Partner: [api-partner.md](api-partner.md)
-- Internal: [api-internal.md](api-internal.md)
-
-Standalone selector (outside GitBook): [profile-selector.html](profile-selector.html)
-EOF
-
-# Generate SUMMARY.md with Profiles first
+# Generate SUMMARY.md without Profiles entry
 echo "# Table of contents" > SUMMARY.md
-echo "* [Profiles](profiles.md)" >> SUMMARY.md
+echo "* [Overview](README.md)" >> SUMMARY.md
 echo "* [Full API](api.md)" >> SUMMARY.md
 echo "* [API (Public)](api-public.md)" >> SUMMARY.md
 echo "* [API (Partner)](api-partner.md)" >> SUMMARY.md
 echo "* [API (Internal)](api-internal.md)" >> SUMMARY.md
 
 # Add files to commit
-git add api.md README.md SUMMARY.md
+git add api.md SUMMARY.md
 
 # Commit & push to docs branch
 if git diff --cached --quiet; then
     echo "No changes to commit"
 else
-    git commit -m "ci: restore profiles.md to fix add error"
+    git commit -m "ci: remove Profiles from left menu"
     git push origin HEAD:docs --force
 fi
