@@ -179,23 +179,30 @@ fi
 # Helper to publish a minimal branch for a profile
 publish_profile_branch() {
   local BRANCH="$1"; local API_FILE="$2"; local LABEL="$3"
+  # Capture the API content before switching branches
+  if [ ! -f "$API_FILE" ]; then
+    echo "Missing $API_FILE; skipping $BRANCH"; return 0
+  fi
+  local API_CONTENT
+  API_CONTENT="$(cat "$API_FILE")"
+
   git checkout -B "$BRANCH" origin/main
-  # Clean working tree (preserve git)
-  find . -maxdepth 1 ! -name '.git' -exec rm -rf {} + || true
+  # Clean working tree except .git
+  find . -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} + || true
+
   # Write minimal files
   cat > README.md << 'EOR'
 # Overview
 
 This is a test overview
 EOR
-  cp ".github/scripts/commit_docs.sh" .github_scripts_commit_docs_backup 2>/dev/null || true
-  cp "$API_FILE" api.md
-  # Minimal SUMMARY
+  printf "%s\n" "$API_CONTENT" > api.md
   echo "# Table of contents" > SUMMARY.md
   echo "* [Overview](README.md)" >> SUMMARY.md
   echo "* [$LABEL](api.md)" >> SUMMARY.md
+
   git add README.md SUMMARY.md api.md
-  git commit -m "ci: publish $BRANCH"
+  git commit -m "ci: publish $BRANCH" || true
   git push origin HEAD:$BRANCH --force
 }
 
