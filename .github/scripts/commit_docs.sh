@@ -114,16 +114,16 @@ EOF
 
 git add profiles.html profiles.md
 
-# Make Profiles the landing page by redirecting README.md to profiles.md
+# Markdown-only landing (no JS redirect)
 cat > README.md << 'EOF'
 # API Reference
 
-If you are not redirected automatically, use the Profiles link in the left menu.
+> Start here: [Select a Profile](profiles.md)
 
-<script>
-  // Redirect to Profiles page inside GitBook
-  window.location.href = 'profiles.md';
-</script>
+- Full API: [api.md](api.md)
+- Public: [api-public.md](api-public.md)
+- Partner: [api-partner.md](api-partner.md)
+- Internal: [api-internal.md](api-internal.md)
 EOF
 
 # Generate SUMMARY.md with Profiles first
@@ -141,6 +141,6 @@ git add api.md README.md SUMMARY.md
 if git diff --cached --quiet; then
     echo "No changes to commit"
 else
-    git commit -m "ci: set Profiles as landing page"
+    git commit -m "ci: markdown-only landing to Profiles"
     git push origin HEAD:docs --force
 fi
