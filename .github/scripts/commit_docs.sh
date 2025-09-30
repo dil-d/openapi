@@ -33,8 +33,11 @@ done
 npx widdershins ./openapi.yaml -o api.md
 node ./.github/scripts/postprocess-gitbook-tabs.mjs || true
 
+# Hardcoded GitBook base URL
+GITBOOK_BASE_URL_CONST="https://thoughtfocus.gitbook.io/openapi-1"
+
 # Generate a static profile selector UI (HTML and MD wrapper)
-cat > profiles.html << 'EOF'
+cat > profiles.html << EOF
 <!doctype html>
 <html lang="en">
 <head>
@@ -71,10 +74,10 @@ cat > profiles.html << 'EOF'
     </div>
   </div>
   <script>
-    const gitbookBaseUrl = '__GITBOOK_BASE_URL__';
+    const gitbookBaseUrl = '${GITBOOK_BASE_URL_CONST}';
     const routes = { public: 'api-public', partner: 'api-partner', internal: 'api-internal', full: 'api' };
     function toGitBook(route) {
-      if (gitbookBaseUrl && gitbookBaseUrl !== '__GITBOOK_BASE_URL__') {
+      if (gitbookBaseUrl) {
         return gitbookBaseUrl.replace(/\/$/, '') + '/' + route;
       }
       return route + '.md';
@@ -88,7 +91,7 @@ cat > profiles.html << 'EOF'
 EOF
 
 # Standalone selector for hosting anywhere
-cat > profile-selector.html << 'EOF'
+cat > profile-selector.html << EOF
 <!doctype html>
 <html lang="en">
 <head>
@@ -125,7 +128,7 @@ cat > profile-selector.html << 'EOF'
     </div>
   </div>
   <script>
-    const gitbookBaseUrl = '__GITBOOK_BASE_URL__';
+    const gitbookBaseUrl = '${GITBOOK_BASE_URL_CONST}';
     const routes = { public: 'api-public', partner: 'api-partner', internal: 'api-internal', full: 'api' };
     function toGitBook(route) { return gitbookBaseUrl.replace(/\/$/, '') + '/' + route; }
     function navigate(profile) { const route = routes[profile] || routes.full; window.location.href = toGitBook(route); }
@@ -134,37 +137,6 @@ cat > profile-selector.html << 'EOF'
   </script>
 </body>
 </html>
-EOF
-
-# Inject GitBook base URL from CI secret into both selectors
-if [ -n "$GITBOOK_BASE_URL" ]; then
-  sed -i "s|__GITBOOK_BASE_URL__|$GITBOOK_BASE_URL|g" profiles.html || true
-  sed -i "s|__GITBOOK_BASE_URL__|$GITBOOK_BASE_URL|g" profile-selector.html || true
-fi
-
-cat > profiles.md << 'EOF'
-# Select API Profile
-
-<div style="border:1px solid #e5e7eb;border-radius:12px;padding:16px">
-  <p>Choose a profile to view documentation filtered by <code>x-profiles</code>.</p>
-  <select id="profile" style="height:36px;padding:0 8px">
-    <option value="public">Public</option>
-    <option value="partner">Partner</option>
-    <option value="internal">Internal</option>
-  </select>
-  <button id="go" style="height:36px;padding:0 12px;margin-left:8px">Go</button>
-  <button id="full" style="height:36px;padding:0 12px;margin-left:8px">Full API</button>
-</div>
-
-<script>
-(function(){
-  function navigate(profile){ window.location.href = 'api-' + profile + '.md'; }
-  document.getElementById('go').addEventListener('click', function(){
-    var p = document.getElementById('profile').value; navigate(p);
-  });
-  document.getElementById('full').addEventListener('click', function(){ window.location.href = 'api.md'; });
-})();
-</script>
 EOF
 
 git add profiles.html profiles.md profile-selector.html
@@ -198,6 +170,6 @@ git add api.md README.md SUMMARY.md
 if git diff --cached --quiet; then
     echo "No changes to commit"
 else
-    git commit -m "ci: generate profile-selector.html and inject GitBook base URL"
+    git commit -m "ci: hardcode GitBook base URL into selectors"
     git push origin HEAD:docs --force
 fi
