@@ -36,7 +36,7 @@ node ./.github/scripts/postprocess-gitbook-tabs.mjs || true
 # Hardcoded GitBook base URL
 GITBOOK_BASE_URL_CONST="https://thoughtfocus.gitbook.io/openapi-1"
 
-# Generate a static profile selector UI (HTML and MD wrapper)
+# Generate a static profile selector UI (HTML)
 cat > profiles.html << EOF
 <!doctype html>
 <html lang="en">
@@ -139,6 +139,16 @@ cat > profile-selector.html << EOF
 </html>
 EOF
 
+# GitBook in-repo page with simple profile links (for left nav)
+cat > profiles.md << 'EOF'
+# Select API Profile
+
+- Public: [api-public](api-public.md)
+- Partner: [api-partner](api-partner.md)
+- Internal: [api-internal](api-internal.md)
+- Full: [api](api.md)
+EOF
+
 git add profiles.html profiles.md profile-selector.html
 
 # Markdown-only landing (no JS redirect)
@@ -170,6 +180,6 @@ git add api.md README.md SUMMARY.md
 if git diff --cached --quiet; then
     echo "No changes to commit"
 else
-    git commit -m "ci: hardcode GitBook base URL into selectors"
+    git commit -m "ci: restore profiles.md to fix add error"
     git push origin HEAD:docs --force
 fi
