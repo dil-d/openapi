@@ -166,13 +166,42 @@ echo "* [API (Public)](api-public.md)" >> SUMMARY.md
 echo "* [API (Partner)](api-partner.md)" >> SUMMARY.md
 echo "* [API (Internal)](api-internal.md)" >> SUMMARY.md
 
-# Add files to commit
 git add api.md SUMMARY.md
 
-# Commit & push to docs branch
+# Commit current docs branch
 if git diff --cached --quiet; then
-    echo "No changes to commit"
+    echo "No changes to commit on docs"
 else
-    git commit -m "ci: remove Profiles from left menu"
+    git commit -m "ci: update docs branch"
     git push origin HEAD:docs --force
 fi
+
+# Helper to publish a minimal branch for a profile
+publish_profile_branch() {
+  local BRANCH="$1"; local API_FILE="$2"; local LABEL="$3"
+  git checkout -B "$BRANCH" origin/main
+  # Clean working tree (preserve git)
+  find . -maxdepth 1 ! -name '.git' -exec rm -rf {} + || true
+  # Write minimal files
+  cat > README.md << 'EOR'
+# Overview
+
+This is a test overview
+EOR
+  cp ".github/scripts/commit_docs.sh" .github_scripts_commit_docs_backup 2>/dev/null || true
+  cp "$API_FILE" api.md
+  # Minimal SUMMARY
+  echo "# Table of contents" > SUMMARY.md
+  echo "* [Overview](README.md)" >> SUMMARY.md
+  echo "* [$LABEL](api.md)" >> SUMMARY.md
+  git add README.md SUMMARY.md api.md
+  git commit -m "ci: publish $BRANCH"
+  git push origin HEAD:$BRANCH --force
+}
+
+# Publish partner and internal minimal branches
+publish_profile_branch "docs-partner" "api-partner.md" "API (Partner)"
+publish_profile_branch "docs-internal" "api-internal.md" "API (Internal)"
+
+# Switch back to docs branch for any subsequent steps
+git checkout docs
