@@ -35,4 +35,6 @@ jobs:
 
       # Generate, commit, and push docs
       - name: Generate API docs and push
+        env:
+          GITBOOK_BASE_URL: ${{ secrets.GITBOOK_BASE_URL }}
         run: .github/scripts/commit_docs.sh
